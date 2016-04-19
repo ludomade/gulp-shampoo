@@ -20,7 +20,7 @@ gulp.task('shampoo', function(done) {
 
     shampoo({ //see below for an explanation of each option.
         documentId: "MY-SHAMPOO-DOCUMENT-ID-HERE",
-        outputDir: "locales/"
+        outputDir: "locales/",
         activeLocales: ["en-US"]
     }, function(err) {
         if (err) {
