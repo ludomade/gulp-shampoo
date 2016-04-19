@@ -16,6 +16,7 @@ Once you've got a basic gulpfile setup, add the following task:
 
 
 ```js
+var shampoo = require('gulp-shampoo');
 gulp.task('shampoo', function(done) {
 
     shampoo({ //see below for an explanation of each option.
@@ -63,4 +64,4 @@ For the first time, the task will prompt you for a few details.
 1. First it will prompt you with "Please enter your google ClientID.".  If you don't know what this is, ask a shampoo admin.
 2. Secondly, it will prompt you with "Please enter your google ClientSecret.".  If you don't know what this is, ask a shampoo admin.
 3. Lastly, it will open a browser window with a Google sign-in and authorization request screen.  Upon clicking the 'accept' button, it will provide you with a key to save.  Copy this key, and paste it into the terminal prompt.
-4. You're done.  The credentials used above will get saved down, and remembered next time.  If all went well, you should have locales/en-US.json, filled with data. 
+4. You're done.  The credentials used above will get saved down, and remembered next time.  If all went well, you should have locales/en-US.json, filled with data.
