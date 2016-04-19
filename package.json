@@ -34,7 +34,6 @@
   "keywords": [],
   "dependencies": {
     "googleapis": "~2.0.3",
-    "gulp-prompt": "^0.2.0",
     "gulp-util": "^3.0.7",
     "inquirer": "~0.8.3",
     "mkdirp": "^0.5.1",
