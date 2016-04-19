@@ -9,7 +9,7 @@ This plugin requires Gulp `^3.9.1`
 If you haven't used [Gulp](http://gulpjs.com/) before, be sure to check out the [Getting Started](https://github.com/gulpjs/gulp/blob/master/docs/getting-started.md) guide, as it explains how to create a Gulpfile.js. Once you're familiar with that process, you may install this plugin with this command:
 
 ```shell
-npm install gulp-shampoo --save-dev
+npm install ludomade/gulp-shampoo --save-dev
 ```
 
 Once you've got a basic gulpfile setup, add the following task.
