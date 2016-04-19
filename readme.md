@@ -12,8 +12,7 @@ If you haven't used [Gulp](http://gulpjs.com/) before, be sure to check out the 
 npm install gulp-shampoo --save-dev
 ```
 
-Once you've got a basic gulpfile setup, add the following task:
-
+Once you've got a basic gulpfile setup, add the following task.
 
 ```js
 var shampoo = require('gulp-shampoo');
@@ -32,6 +31,10 @@ gulp.task('shampoo', function(done) {
 
 });
 ```
+
+**A note about other gulp async tasks and shampoo**
+
+The shampoo task is best setup as a 'synchronous' task - as it's got a few entry prompts in the terminal window.  If other asynchronous tasks are started at the same time, the prompts may get lost within the output.  For an explanation on how to set this up, see this [article](http://schickling.me/synchronous-tasks-gulp/).
 
 ### Options
 
