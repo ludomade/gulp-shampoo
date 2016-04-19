@@ -6,10 +6,8 @@ var shampoo = require('./shampoo');
 gulp.task('shampoo', function(done) {
 
     shampoo({
-        documentId: "0B0DrlaR4h0bLeTY2Y2lHSlRCMHM",
-        activeLocales: [
-            "en-US"
-        ]
+        documentId: "0Bz-OjbqJG4dfVDFMRThMcDV3Z00",
+        activeLocales: ["en-US", "fr-FR"]
     }, function(err) {
         if (err) {
             return done(err); // return error

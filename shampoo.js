@@ -32,6 +32,23 @@ function error(message) {
 
 }
 
+function writeFile(outputFile, doc) {
+	mkdirp(getDirName(outputFile), function (err) {
+
+		if (err) {
+			error("There was an error writing your shampoo locale.  The error was:" + err);
+		}
+
+		fs.writeFile(outputFile, JSON.stringify(doc.data, undefined, 4), function(err) {
+			if(err) {
+				error("There was an error writing your shampoo locale.  The error was:" + err);
+			}
+			log("Writing " + outputFile);
+		});
+
+	});
+}
+
 module.exports = function(params, callback) {
 
 	// if(!grunt.file.exists(".shampoo")) {
@@ -89,21 +106,7 @@ module.exports = function(params, callback) {
 						//write out the json document!
 						var doc = jsonDocuments[i];
 						var outputFile = options.outputDir + doc.locale + ".json";
-
-						mkdirp(getDirName(outputFile), function (err) {
-
-							if (err) {
-								error("There was an error writing your shampoo locale.  The error was:" + err);
-							}
-
-							fs.writeFile(outputFile, JSON.stringify(doc.data, undefined, 4), function(err) {
-								if(err) {
-									error("There was an error writing your shampoo locale.  The error was:" + err);
-								}
-								log("Writing " + options.outputDir + doc.locale + ".json");
-							});
-
-						});
+						writeFile(outputFile, doc);
 
 					}
 
