@@ -32,7 +32,7 @@ function error(message) {
 
 }
 
-function writeFile(outputFile, doc) {
+function writeFile(outputFile, doc, cb) {
 	mkdirp(getDirName(outputFile), function (err) {
 
 		if (err) {
@@ -42,8 +42,11 @@ function writeFile(outputFile, doc) {
 		fs.writeFile(outputFile, JSON.stringify(doc.data, undefined, 4), function(err) {
 			if(err) {
 				error("There was an error writing your shampoo locale.  The error was:" + err);
+				cb(err);
+				return;
 			}
 			log("Writing " + outputFile);
+			cb(null);
 		});
 
 	});
@@ -63,6 +66,7 @@ module.exports = function(params, callback) {
 		outputDir: "locales/",
 		activeLocales: []
 	};
+	var numWrittenFiles = 0;
 
 	var options = _.extend(defaults, params);
 
@@ -106,11 +110,14 @@ module.exports = function(params, callback) {
 						//write out the json document!
 						var doc = jsonDocuments[i];
 						var outputFile = options.outputDir + doc.locale + ".json";
-						writeFile(outputFile, doc);
+						writeFile(outputFile, doc, function() {
+							numWrittenFiles++;
+							if(numWrittenFiles === jsonDocuments.length) {
+								callback(null);
+							}
+						});
 
 					}
-
-					callback(false);
 
 				});
 
