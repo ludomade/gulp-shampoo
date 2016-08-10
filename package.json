@@ -1,7 +1,7 @@
 {
   "name": "gulp-shampoo",
   "description": "A gulp plugin to retrieve data from Ludomade's Shampoo app.",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "homepage": "http://shampoo.ludomade.com",
   "author": {
     "name": "George Huber",
