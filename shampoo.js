@@ -1,129 +1,131 @@
 /*
- * grunt-shampoo
- * https://github.com/ludomade/grunt-shampoo
+ * shampoo
  *
- * Copyright (c) 2015 Ludomade
+ * Copyright (c) 2017 Ludomade
  * Licensed under the MIT license.
  */
+"use strict";
 
-'use strict';
 
-var auth = require('./lib/googleAuth');
-var transformer = require('./lib/documentTransformer');
-var gutil = require('gulp-util');
-var _ = require('underscore');
-var mkdirp = require('mkdirp');
-var fs = require('fs');
-var getDirName = require('path').dirname;
+const getAuthCodeInteractively = require("./lib/net/getAuthCodeInteractively");
+const getCredentialsInteractively = require("./lib/net/getCredentialsInteractively");
+const googleapis = require("googleapis");
+const parseDocument = require("./lib/doc/parseDocument");
+const path = require("path");
+const prepareAuth = require("./lib/net/prepareAuth");
+const writeFiles = require("./lib/writeFiles");
+const { FileStorage } = require("./lib/net/storage");
+const { defaultLogger } = require("./lib/log");
 
-function log(message) {
 
-	gutil.log(message);
+function download(params, callback) {
+  const logger = params.logger || defaultLogger;
 
+  const fileId = params.documentId;
+  logger.debug(`fileId=${fileId}`);
+
+  const configPath = params.configPath || ".shampoo";
+  logger.debug(`configPath=${configPath}`);
+
+  const requestedLocales = params.activeLocales || null;
+  logger.debug(`requestedLocales=${requestedLocales}`);
+
+  const allowInteractive = params.allowInteractive !== false;
+  logger.debug(`allowInteractive=${allowInteractive}`);
+
+  if (!fileId) {
+    process.nextTick(() => {
+      callback(new Error("Missing required parameter documentId"));
+    });
+  }
+
+  const storage = new FileStorage(
+    configPath,
+    allowInteractive ? getCredentialsInteractively : null,
+    logger
+  );
+
+  prepareAuth(storage, getAuthCodeInteractively, logger, (authError, auth) => {
+    if (authError) {
+      return callback(authError);
+    }
+
+    googleapis.options({ auth });
+    googleapis.drive({ version: "v2", auth })
+      .realtime.get({ fileId }, (gdriveError, realtimeDocument) => {
+        if (gdriveError) {
+          return callback(gdriveError);
+        }
+
+        let result;
+        try {
+          result = parseDocument(realtimeDocument, requestedLocales);
+          for (const message of result.messages) {
+            logger.warn(message);
+          }
+        } catch (parseError) {
+          return callback(parseError);
+        }
+
+        callback(null, result);
+      });
+  });
 }
 
-function error(message) {
 
-	throw new gutil.PluginError({
-		plugin: "gulp-shampoo",
-		message: message
-	});
-	return;
+const ASTERISKS = /\*/g;
+function createNamerByTemplate(template) {
+  if (template.indexOf("*") === -1) {
+    throw new Error("Output path pattern must contain a * character.");
+  }
 
+  return (document) => template.replace(ASTERISKS, document.locale.code);
 }
 
-function writeFile(outputFile, doc, cb) {
-	mkdirp(getDirName(outputFile), function (err) {
 
-		if (err) {
-			error("There was an error writing your shampoo locale.  The error was:" + err);
-		}
+function createNamer(pathParam, legacyDirParam, defaultSuffix) {
+  if (pathParam) {
+    if (typeof pathParam === "function") {
+      return pathParam;
+    }
+    return createNamerByTemplate(String(pathParam));
+  }
 
-		fs.writeFile(outputFile, JSON.stringify(doc.data, undefined, 4), function(err) {
-			if(err) {
-				error("There was an error writing your shampoo locale.  The error was:" + err);
-				cb(err);
-				return;
-			}
-			log("Writing " + outputFile);
-			cb(null);
-		});
+  if (legacyDirParam) {
+    return (document) => path.join(legacyDirParam, document.locale.code + defaultSuffix);
+  }
 
-	});
+  return (document) => document.locale.code + defaultSuffix;
 }
 
-module.exports = function(params, callback) {
 
-	// if(!grunt.file.exists(".shampoo")) {
-	// 	grunt.log.error("No .shampoo configuration file was found.  Please create one.  See the readme (https://github.com/ludomade/grunt-shampoo/tree/shampoo3) for more info.");
-	// 	done(false);
-	// 	return;
-	// }
+function downloadAndSavePerLocale(params, callback) {
+  const logger = params.logger || defaultLogger;
+  const namer = createNamer(params.outputPath, params.outputDir, ".json");
 
-	// Merge task-specific and/or target-specific options with these defaults.
-	var defaults = {
-		documentId: "",
-		outputDir: "locales/",
-		activeLocales: []
-	};
-	var numWrittenFiles = 0;
+  download(params, (downloadError, result) => {
+    if (downloadError) {
+      return callback(downloadError);
+    }
 
-	var options = _.extend(defaults, params);
+    const writes = result.documents.map(
+      (document) => ({
+        path: namer(document),
+        content: JSON.stringify(document.values, null, 2)
+      })
+    );
 
-	if(!options.documentId.length) {
-		error("No shampoo documentId was set as an option on the Grunt task.  Add `{documentId:\"MyDocumentId\"}` to the gulp task configuration!");
-		return;
-	}
+    writeFiles(
+      writes,
+      {
+        beforeWrite: (path) => {
+          logger.info(`Writing ${path}`);
+        }
+      },
+      callback
+    );
+  });
+}
 
-	if (options.activeLocales.length === 0) {
-		error("No active locales has been set.  Add `{activeLocales:\"MyDocumentId\"}` to the gulp task configuration!");
-		return;
-	}
 
-	if(options.outputDir.charAt(options.outputDir.length - 1) !== "/") {
-		//if the output dir's last character isn't "/", tack it on
-		options.outputDir += "/";
-	}
-
-	auth.init({
-		taskCallback: callback,
-		log: log,
-		error: error,
-		ready: function() {
-
-			auth.request(function() {
-
-				//this only gets called when there was a success grabbing down an API key.
-
-				//transform the native google doc data into an array of json documents.
-				transformer.init({
-					taskCallback: callback,
-					options: options,
-					auth: auth,
-					log: log,
-					error: error
-				});
-
-				transformer.fetch(function(jsonDocuments) {
-
-					for(var i=0; i<jsonDocuments.length; i++) {
-						//write out the json document!
-						var doc = jsonDocuments[i];
-						var outputFile = options.outputDir + doc.locale + ".json";
-						writeFile(outputFile, doc, function() {
-							numWrittenFiles++;
-							if(numWrittenFiles === jsonDocuments.length) {
-								callback(null);
-							}
-						});
-
-					}
-
-				});
-
-			});
-
-		}
-	});
-
-};
+module.exports = { download, downloadAndSavePerLocale };

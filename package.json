@@ -1,13 +1,12 @@
 {
   "name": "gulp-shampoo",
   "description": "A gulp plugin to retrieve data from Ludomade's Shampoo app.",
-  "version": "0.0.6",
+  "version": "0.0.7-alpha",
   "homepage": "http://shampoo.ludomade.com",
-  "author": {
-    "name": "George Huber",
-    "email": "huber@ludomade.com",
-    "url": "http://www.ludomade.com/"
-  },
+  "contributors": [
+    "George Huber <huber@ludomade.com>",
+    "Jim Boswell <boswell@ludomade.com>"
+  ],
   "repository": {
     "type": "git",
     "url": "git@github.com:ludomade/gulp-shampoo.git"
@@ -30,14 +29,13 @@
   "devDependencies": {
     "gulp": "^3.9.1"
   },
-  "main": "shampoo.js",
+  "main": "gulp-shampoo.js",
   "keywords": [],
   "dependencies": {
     "googleapis": "~2.0.3",
     "gulp-util": "^3.0.7",
     "inquirer": "~0.8.3",
     "mkdirp": "^0.5.1",
-    "open": "0.0.5",
-    "underscore": "^1.8.3"
+    "opn": "^5.1.0"
   }
 }

@@ -1,13 +1,13 @@
 var gulp = require('gulp');
-var shampoo = require('./shampoo');
+var gulpShampooDownload = require('./gulp-shampoo').gulpShampooDownload;
 
 
 // test task
 gulp.task('shampoo', function(done) {
 
-    shampoo({
-        documentId: "0Bz-OjbqJG4dfVDFMRThMcDV3Z00",
-        activeLocales: ["en-US", "fr-FR"]
+    gulpShampooDownload({
+        documentId: "0B5wrWftafh7fdUpLV2cyaTEzRVE",
+        activeLocales: ["en-US", "en-GB"]
     }, function(err) {
         if (err) {
             return done(err); // return error
