@@ -36,12 +36,11 @@ function gulpShampooDownload(userParams, callback) {
     throw pluginError("No documentId set");
   }
 
-  downloadAndSavePerLocale(params, (error) => {
-    if (error) {
+  downloadAndSavePerLocale(params)
+    .then(callback)
+    .catch((error) => {
       throw pluginError(error);
-    }
-    callback();
-  });
+    });
 }
 
 

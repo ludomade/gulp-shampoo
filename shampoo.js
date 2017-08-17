@@ -13,12 +13,13 @@ const googleapis = require("googleapis");
 const parseDocument = require("./lib/doc/parseDocument");
 const path = require("path");
 const prepareAuth = require("./lib/net/prepareAuth");
+const promisify = require("./lib/promisify").scalar;
 const writeFiles = require("./lib/writeFiles");
 const { FileStorage } = require("./lib/net/storage");
 const { defaultLogger } = require("./lib/log");
 
 
-function download(params, callback) {
+function download(params) {
   const logger = params.logger || defaultLogger;
 
   const fileId = params.documentId;
@@ -34,9 +35,7 @@ function download(params, callback) {
   logger.debug(`allowInteractive=${allowInteractive}`);
 
   if (!fileId) {
-    process.nextTick(() => {
-      callback(new Error("Missing required parameter documentId"));
-    });
+    return Promise.reject(new Error("Missing required parameter documentId"));
   }
 
   const storage = new FileStorage(
@@ -45,31 +44,21 @@ function download(params, callback) {
     logger
   );
 
-  prepareAuth(storage, getAuthCodeInteractively, logger, (authError, auth) => {
-    if (authError) {
-      return callback(authError);
-    }
+  return prepareAuth(storage, getAuthCodeInteractively, logger)
+    .then((auth) => {
+      const drive = googleapis.drive({ version: "v2", auth });
+      const realtimeGet = promisify(drive.realtime.get, drive.realtime);
 
-    googleapis.options({ auth });
-    googleapis.drive({ version: "v2", auth })
-      .realtime.get({ fileId }, (gdriveError, realtimeDocument) => {
-        if (gdriveError) {
-          return callback(gdriveError);
-        }
+      return realtimeGet({ fileId });
+    })
+    .then((realtimeDocument) => {
+      const result = parseDocument(realtimeDocument, requestedLocales);
+      for (const message of result.messages) {
+        logger.warn(message);
+      }
 
-        let result;
-        try {
-          result = parseDocument(realtimeDocument, requestedLocales);
-          for (const message of result.messages) {
-            logger.warn(message);
-          }
-        } catch (parseError) {
-          return callback(parseError);
-        }
-
-        callback(null, result);
-      });
-  });
+      return result;
+    });
 }
 
 
@@ -99,32 +88,28 @@ function createNamer(pathParam, legacyDirParam, defaultSuffix) {
 }
 
 
-function downloadAndSavePerLocale(params, callback) {
+function downloadAndSavePerLocale(params) {
   const logger = params.logger || defaultLogger;
   const namer = createNamer(params.outputPath, params.outputDir, ".json");
 
-  download(params, (downloadError, result) => {
-    if (downloadError) {
-      return callback(downloadError);
-    }
+  return download(params)
+    .then((result) => {
+      const writes = result.documents.map(
+        (document) => ({
+          path: namer(document),
+          content: JSON.stringify(document.values, null, 2)
+        })
+      );
 
-    const writes = result.documents.map(
-      (document) => ({
-        path: namer(document),
-        content: JSON.stringify(document.values, null, 2)
-      })
-    );
-
-    writeFiles(
-      writes,
-      {
-        beforeWrite: (path) => {
-          logger.info(`Writing ${path}`);
+      return writeFiles(
+        writes,
+        {
+          beforeWrite: (path) => {
+            logger.info(`Writing ${path}`);
+          }
         }
-      },
-      callback
-    );
-  });
+      );
+    });
 }
 
 
