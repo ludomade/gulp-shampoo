@@ -14,14 +14,9 @@
   "bugs": {
     "url": "https://github.com/ludomade/gulp-shampoo/issues"
   },
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "https://github.com/ludomade/gulp-shampoo/blob/master/LICENSE-MIT"
-    }
-  ],
+  "license": "MIT",
   "engines": {
-    "node": ">= 0.8.0"
+    "node": ">=6.4.0"
   },
   "scripts": {
     "test": "gulp test"
