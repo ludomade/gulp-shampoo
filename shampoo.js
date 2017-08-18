@@ -7,6 +7,7 @@
 "use strict";
 
 
+const createPathGenerator = require("./lib/createPathGenerator");
 const getAuthCodeInteractively = require("./lib/net/getAuthCodeInteractively");
 const getCredentialsInteractively = require("./lib/net/getCredentialsInteractively");
 const googleapis = require("googleapis");
@@ -16,7 +17,9 @@ const prepareAuth = require("./lib/net/prepareAuth");
 const promisify = require("./lib/promisify").scalar;
 const writeFiles = require("./lib/writeFiles");
 const { FileStorage } = require("./lib/net/storage");
+const { buildLookup, castToArray } = require("./lib/langutil");
 const { defaultLogger } = require("./lib/log");
+const { formatLocaleArray } = require("./lib/messaging");
 
 
 function download(params) {
@@ -27,9 +30,6 @@ function download(params) {
 
   const configPath = params.configPath || ".shampoo";
   logger.debug(`configPath=${configPath}`);
-
-  const requestedLocales = params.activeLocales || null;
-  logger.debug(`requestedLocales=${requestedLocales}`);
 
   const allowInteractive = params.allowInteractive !== false;
   logger.debug(`allowInteractive=${allowInteractive}`);
@@ -52,7 +52,7 @@ function download(params) {
       return realtimeGet({ fileId });
     })
     .then((realtimeDocument) => {
-      const result = parseDocument(realtimeDocument, requestedLocales);
+      const result = parseDocument(realtimeDocument);
       for (const message of result.messages) {
         logger.warn(message);
       }
@@ -62,39 +62,56 @@ function download(params) {
 }
 
 
-const ASTERISKS = /\*/g;
-function createNamerByTemplate(template) {
-  if (template.indexOf("*") === -1) {
-    throw new Error("Output path pattern must contain a * character.");
+const hasOwn = Object.prototype.hasOwnProperty;
+function pickLocalesByCode(allDocuments, selectedLocales) {
+  if (selectedLocales == null) {
+    return {
+      documents: allDocuments,
+      unknownLocales: [ ]
+    };
   }
 
-  return (document) => template.replace(ASTERISKS, document.locale.code);
-}
+  const byCode = buildLookup(allDocuments, (d) => d.locale.code);
+  const documents = [ ];
+  const unknownLocales = [ ];
 
-
-function createNamer(pathParam, legacyDirParam, defaultSuffix) {
-  if (pathParam) {
-    if (typeof pathParam === "function") {
-      return pathParam;
+  for (const localeCode of castToArray(selectedLocales)) {
+    if (hasOwn.call(byCode, localeCode)) {
+      documents.push(byCode[localeCode]);
+    } else {
+      unknownLocales.push(localeCode);
     }
-    return createNamerByTemplate(String(pathParam));
   }
 
-  if (legacyDirParam) {
-    return (document) => path.join(legacyDirParam, document.locale.code + defaultSuffix);
-  }
-
-  return (document) => document.locale.code + defaultSuffix;
+  return { documents, unknownLocales };
 }
 
 
 function downloadAndSavePerLocale(params) {
   const logger = params.logger || defaultLogger;
-  const namer = createNamer(params.outputPath, params.outputDir, ".json");
+  const locales = params.activeLocales;
+  const namer = createPathGenerator(params.outputPath, params.outputDir, ".json");
 
   return download(params)
     .then((result) => {
-      const writes = result.documents.map(
+      const { documents, unknownLocales } = pickLocalesByCode(result.documents, locales);
+
+      for (const unknownLocaleCode of unknownLocales) {
+        logger.warn(`No locale with code '${unknownLocaleCode}'`);
+      }
+
+      if (unknownLocales.length > 0) {
+        logger.info(
+          "Available locales: " +
+          formatLocaleArray(result.documents.map((d) => d.locale))
+        );
+      }
+
+      if (documents.length === 0) {
+        logger.warn("No valid locales specified. No files will be written.");
+      }
+
+      const writes = documents.map(
         (document) => ({
           path: namer(document),
           content: JSON.stringify(document.values, null, 2)
