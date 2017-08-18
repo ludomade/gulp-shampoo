@@ -2,7 +2,7 @@
 
 
 const gulpUtil = require("gulp-util");
-const { downloadAndSavePerLocale } = require("./shampoo");
+const { downloadSplitLocales } = require("./shampoo");
 
 
 function pluginError(message) {
@@ -36,7 +36,7 @@ function gulpShampooDownload(userParams, callback) {
     throw pluginError("No documentId set");
   }
 
-  downloadAndSavePerLocale(params)
+  downloadSplitLocales(params)
     .then(callback)
     .catch((error) => {
       throw pluginError(error);

@@ -22,7 +22,7 @@ const { defaultLogger } = require("./lib/log");
 const { formatLocaleArray } = require("./lib/messaging");
 
 
-function download(params) {
+function fetchSource(params) {
   const logger = params.logger || defaultLogger;
 
   const fileId = params.documentId;
@@ -50,7 +50,14 @@ function download(params) {
       const realtimeGet = promisify(drive.realtime.get, drive.realtime);
 
       return realtimeGet({ fileId });
-    })
+    });
+}
+
+
+function fetch(params) {
+  const logger = params.logger || defaultLogger;
+
+  return fetchSource(params)
     .then((realtimeDocument) => {
       const result = parseDocument(realtimeDocument);
       for (const message of result.messages) {
@@ -87,12 +94,12 @@ function pickLocalesByCode(allDocuments, selectedLocales) {
 }
 
 
-function downloadAndSavePerLocale(params) {
+function downloadSplitLocales(params) {
   const logger = params.logger || defaultLogger;
   const locales = params.activeLocales;
   const namer = createPathGenerator(params.outputPath, params.outputDir, ".json");
 
-  return download(params)
+  return fetch(params)
     .then((result) => {
       const { documents, unknownLocales } = pickLocalesByCode(result.documents, locales);
 
@@ -130,4 +137,4 @@ function downloadAndSavePerLocale(params) {
 }
 
 
-module.exports = { download, downloadAndSavePerLocale };
+module.exports = { fetchSource, fetch, downloadSplitLocales };
