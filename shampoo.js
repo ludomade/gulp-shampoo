@@ -12,7 +12,6 @@ const getAuthCodeInteractively = require("./lib/net/getAuthCodeInteractively");
 const getCredentialsInteractively = require("./lib/net/getCredentialsInteractively");
 const googleapis = require("googleapis");
 const parseDocument = require("./lib/doc/parseDocument");
-const path = require("path");
 const prepareAuth = require("./lib/net/prepareAuth");
 const promisify = require("./lib/promisify").scalar;
 const writeFiles = require("./lib/writeFiles");
